@@ -1,0 +1,15 @@
+[project]
+name = "ai-claude"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12.6"
+dependencies = [
+    "anthropic>=0.109.1",
+    "python-dotenv>=1.0.1",
+    "taskipy>=1.14.0",
+]
+
+[tool.taskipy.tasks]
+"env:encrypt" = "gpg --symmetric --cipher-algo AES256 --yes --output env.data .env"
+"env:decrypt" = "gpg --output .env --yes --decrypt env.data"
