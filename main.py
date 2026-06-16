@@ -1,4 +1,3 @@
-import json
 from anthropic import Anthropic
 
 # Initialize the Anthropic client
@@ -7,54 +6,82 @@ client = Anthropic()
 # Choose a model to use
 model = "claude-sonnet-4-6"
 
-# Short system prompt
-system_prompt = "You are a helpful assistant. Answer questions very briefly."
+# Step 1: Ask Claude to write a summary with specific character constraints
+summary_prompt = "You are a helpful assistant that writes clear, concise summaries."
 
-# Create an array of messages to send to Claude
-messages = [
+summary_messages = [
     {
         "role": "user",
-        "content": "What is the main difference between cats and dogs as pets"
+        "content": "Write up to 300 characters summary of artificial intelligence and its current applications in healthcare."
     }
 ]
 
-# Send the messages to Claude
-response = client.messages.create(
+# Send the first request to Claude for summary generation
+summary_response = client.messages.create(
     model=model,
     max_tokens=2000,
-    messages=messages,
-    system=system_prompt
+    messages=summary_messages,
+    system=summary_prompt
 )
 
-# Print the text response
-print("First response text:")
-print(response.content[0].text)
+# Extract the summary text from Claude's response
+summary_text = summary_response.content[0].text
+print("Summary:")
+print(summary_text)
 
-# Append Claude's response to messages
-messages.append({"role": "assistant", "content": response.content})
+# Step 2: Validate that the summary meets our character requirements
+if not (250 <= len(summary_text) <= 350):
+    raise ValueError(
+        f"Summary does not meet character requirement (250-350 characters). Got {len(summary_text)} characters.")
 
-# Append a new user message
-messages.append({"role": "user", "content": "Which one is easier to train?"})
+print(
+    f"✅ SUCCESS: Summary meets character requirement: {len(summary_text)} characters")
 
-# Add thinking parameter with type "enabled" and budget_tokens 10000
-# Remember to increase your max_tokens to accomodate all the tokens
-second_response = client.messages.create(
-    model=model,
-    max_tokens=16000,
-    messages=messages,
-    system=system_prompt,
-    thinking={
-        "type": "enabled",
-        "budget_tokens": 10000
+# Step 3: Chain the summary output as input to a translation task
+translation_prompt = "You are a professional translator that provides accurate Spanish translations."
+
+translation_messages = [
+    {
+        "role": "user",
+        "content": f"Return me just the Spanish translation of the following text:\n\n{summary_text}"
     }
+]
+
+# Send the second request to Claude using the summary from the first call
+translation_response = client.messages.create(
+    model=model,
+    max_tokens=2000,
+    messages=translation_messages,
+    system=translation_prompt
 )
 
-# Print the whole response as JSON
-print("\nSecond response JSON:")
-print(json.dumps(second_response.model_dump(), indent=2))
+# Extract and display the final translation result
+translation_text = translation_response.content[0].text
+print("Spanish Translation:")
+print(translation_text)
 
-# Get all text content from the response
-print("\nSecond response text:")
-text_contents = [
-    block.text for block in second_response.content if block.type == "text"]
-print("\n".join(text_contents))
+# Step 4: Review the translation quality by comparing both versions
+# Create a system prompt that establishes Claude as a bilingual translation reviewer who can assess translation quality and accuracy
+review_prompt = "You are a bilingual translation reviewer who can assess translation quality and accuracy"
+
+# Create the messages list with a user message that uses f-string formatting to include both the summary_text (English) and translation_text (Spanish) while requesting feedback on translation quality
+review_messages = [
+    {
+        "role": "user",
+        "content": f"Compare the quality of the translation of the following text:\n\n{summary_text}\n\n with the spanish: {translation_text}"
+    }
+]
+
+# Make the API call to Claude with model, max_tokens=2000, messages, and system parameters
+review_response = client.messages.create(
+    model=model,
+    max_tokens=2000,
+    messages=review_messages,
+    system=review_prompt
+)
+
+# Extract the feedback text from the response and assign it to feedback_text
+feedback_text = review_response.content[0].text
+
+print("Translation Feedback:")
+print(feedback_text)
