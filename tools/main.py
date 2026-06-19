@@ -15,9 +15,9 @@ system_prompt = (
 with open('schemas.json', 'r') as f:
     tool_schemas = json.load(f)
 
-# Create a list of messages to send to Claude
+# Modify the user message to request two separate addition operations
 messages = [
-    {"role": "user", "content": "Please calculate 15 + 27"}
+    {"role": "user", "content": "Please calculate 15 + 27 and 17 + 49 and multiply the results"}
 ]
 
 # Send the messages to Claude
@@ -29,19 +29,16 @@ response = client.messages.create(
     tools=tool_schemas
 )
 
-# Extract and print the stop_reason from the response
+# Print stop reason
 print(f"Stop Reason: {response.stop_reason}")
 
-
-# Create a loop to iterate through each content item in response.content with enumeration
+# Extract and print each content item
 for i, content_item in enumerate(response.content):
-    # Print the content item number and type
     print(f"\nContent Item {i+1}:")
     print(f"Type: {content_item.type}")
-    # Check if the content item type is "text" and print the text content
+    
     if content_item.type == "text":
         print(f"Text: {content_item.text}")
-    # Check if the content item type is "tool_use" and print the tool name, input, and ID
     elif content_item.type == "tool_use":
         print(f"Tool Name: {content_item.name}")
         print(f"Tool Input: {content_item.input}")
