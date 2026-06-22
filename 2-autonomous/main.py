@@ -2,35 +2,49 @@ import json
 from agent import Agent
 from functions import (
     sum_numbers,
-    subtract_numbers
+    multiply_numbers,
+    subtract_numbers,
+    divide_numbers,
+    power,
+    square_root
 )
-# Create a simple agent for general conversation with an appropriate system prompt
+
+# Load the schemas from JSON file
 with open('schemas.json', 'r') as f:
     tool_schemas = json.load(f)
+
+# Create a dictionary mapping tool names to functions
 tools = {
     "sum_numbers": sum_numbers,
+    "multiply_numbers": multiply_numbers,
     "subtract_numbers": subtract_numbers,
+    "divide_numbers": divide_numbers,
+    "power": power,
+    "square_root": square_root
 }
+
+# Increase max_turns to 15 to handle the more complex equation
 agent = Agent(
-    name="simple_agent",
+    name="math_assistant",
     system_prompt="You are a helpful math assistant.",
     tools=tools,
-    tool_schemas=tool_schemas
+    tool_schemas=tool_schemas,
+    max_turns=15
 )
-# Start with a message list containing one user message
-messages = [{"role": "user", "content": "Solve this equation: 2 - 7 + 3"}]
 
-# Send the first message to the agent and print the response
+# Change the equation to "2x² - 7x + 3 = 0" for a more complex challenge
+messages = [{"role": "user", "content": "Solve this equation: 2x² - 7x + 3 = 0"}]
+
+# Send message to the stateless agent
 messages, result = agent.run(messages)
-print("=== First Response ===")
+
+# Display the response
+print("\nFinal response:")
 print(result)
 
-# Add a follow-up user question to the conversation history
-messages.append({
-    "role": "user",
-    "content": "Now add 10 to the previous result."
-})
-# Send the updated conversation to the agent and print the response
-messages, result = agent.run(messages)
-print("=== Second Response ===")
-print(result)
+# Show the conversation history
+print("\nConversation history:")
+for i, msg in enumerate(messages):
+    role = msg["role"]
+    content = msg["content"]
+    print(f"{i}. {role}: {content}")
