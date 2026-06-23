@@ -24,19 +24,27 @@ math_tools = {
 }
 
 
-def create_agent_schema(agent, description):
-
-    # Define an inner function called agent_tool_function that accepts a message parameter
+def create_agent_tool(agent, description):
+    """
+    Create a tool function and schema for using an agent as a tool.
+    
+    Args:
+        agent: The agent to wrap as a tool
+        description: Description of what this agent tool does
+    
+    Returns:
+        tuple: (tool_function, tool_schema)
+    """
     def agent_tool_function(message):
         print(f"🦾 Agent tool called ({agent.name}): {message}")
-
+        
         # Call the agent
         _, response = agent.run([{"role": "user", "content": message}])
-
+        
         print(f"📊 Agent response ({agent.name}): {response}")
-
+        
         return response
-
+    
     # Create schema for this agent tool
     tool_schema = {
         "name": f"{agent.name}_agent",
@@ -52,8 +60,7 @@ def create_agent_schema(agent, description):
             "required": ["message"]
         }
     }
-
-    # Return a tuple containing both the agent_tool_function and the tool_schema
+    
     return agent_tool_function, tool_schema
 
 
@@ -65,16 +72,45 @@ calculator_assistant = Agent(
     tool_schemas=tool_schemas
 )
 
-# Call create_agent_schema with the calculator_assistant and description
-# Use tuple unpacking to capture both the tool function and the schema
-calculator_tool, calculator_schema = create_agent_schema(
+# Create agent tool for calculator
+calculator_tool_function, calculator_tool_schema = create_agent_tool(
     calculator_assistant,
-    "A specialized calculator assistant that can perform mathematical calculations and solve equations."
+    "Call the calculator assistant to solve mathematical problems and equations."
 )
 
-# Test the tool function directly by calling it with a math question like "What is 25 multiplied by 4?"
-result = calculator_tool("What is 25 multiplied by 4?")
+# Create a general assistant
+helpful_assistant = Agent(
+    name="helpful_assistant",
+    system_prompt="You are a helpful assistant. You can assist with various tasks and use the calculator tool for math problems.",
+    tools={calculator_tool_schema["name"]:calculator_tool_function},
+    tool_schemas=[calculator_tool_schema]
+)
 
-# Print the returned result
-print("\nTool test result:")
-print(result)
+# Create a message list with a general knowledge question
+messages = [
+    {
+        'role': 'user', 
+        'content': 'What is the capital of France?'
+    }
+]
+
+# Run the orchestrator agent
+result_messages, response = helpful_assistant.run(messages)
+
+# Display the orchestrator's response to the user
+print(response)
+
+# Create a message list with a general knowledge question
+messages = [
+    {
+        'role': 'user', 
+        'content': 'What is the solution to the equation x² - 5x + 6 = 0?'
+    }
+]
+
+# Run the orchestrator agent
+result_messages, response = helpful_assistant.run(messages)
+
+# Display the orchestrator's response to the user
+print('\n=== Final Response ===\n')
+print(response)
