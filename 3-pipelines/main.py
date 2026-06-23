@@ -51,7 +51,7 @@ calculator_agent = Agent(
     tool_schemas=tool_schemas,
 )
 
-# Create the Solution Presenter Agent with a system prompt that tells it to present calculation results as educational solutions
+# Agent 3: Solution Presenter
 solution_presenter = Agent(
     name="solution_presenter",
     system_prompt=(
@@ -93,19 +93,47 @@ calculation_messages = [
 calculation_messages, calculation_output = calculator_agent.run(
     calculation_messages)
 
-# Create presentation_prompt that combines the original problem and calculation results for final presentation
-presentation_prompt = (
-    f"Original problem:\n{complex_problem}\n\n"
-    f"Calculation results:\n{calculation_output}\n\n"
-    "Present this as a complete educational solution."
+# Add a validation request message to the existing calculation_messages asking the agent to validate its work and respond with only True or False
+validation_request = (
+    "\n\nValidate your previous calculations. "
+    "Double-check all arithmetic. "
+    "Respond with ONLY the word 'True' if everything is correct, "
+    "or 'False' if there is any error."
 )
-# Create presentation_messages with the presentation_prompt for the solution presenter
+calculation_messages.append({"role": "user", "content": validation_request})
+
+# Run the calculator agent again using the existing calculation_messages to get the validation response
+calculation_messages, validation_response = calculator_agent.run(
+    calculation_messages)
+
+# Check if the validation response contains "True" and store this result in validation_passed
+validation_passed = "True" in validation_response
+
+# Print the validation stage results showing the response and whether validation passed
+print("\n=== VALIDATION STAGE ===")
+print(f"Validation Response: {validation_response}")
+print(f"Validation Passed: {validation_passed}")
+
+# Only proceed to create and run the Solution Presenter if validation_passed is True, otherwise print an error message
+if not validation_passed:
+    print("\n❌ Validation failed. Aborting presentation stage.")
+    presentation_output = "Validation failed - cannot proceed to final solution."
+else:
+    # Combine original problem and calculation results for final presentation
+    presentation_prompt = (
+        "Present this solution clearly based on the original problem and "
+        "calculations:\n\n"
+        f"Original Problem: {complex_problem}\n\n"    # Provide context
+        # Include all calculations
+        f"Calculation Results: {calculation_output}"
+    )
+# Create the final message for the solution presenter
 presentation_messages = [{"role": "user", "content": presentation_prompt}]
 
-# Run the solution presenter agent to create the final educational output
+# Run the solution presenter to create the final educational output
 presentation_messages, presentation_output = solution_presenter.run(
     presentation_messages)
 
-# Print the presentation_output to see the complete pipeline result
-print("\n=== FINAL EDUCATIONAL SOLUTION ===")
+# Display the final output
+print("\n=== PRESENTATION STAGE ===")
 print(presentation_output)
