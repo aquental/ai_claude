@@ -27,25 +27,15 @@ math_tools = {
 def create_agent_tool(agent, description):
     """
     Create a tool function and schema for using an agent as a tool.
-    
-    Args:
-        agent: The agent to wrap as a tool
-        description: Description of what this agent tool does
-    
-    Returns:
-        tuple: (tool_function, tool_schema)
     """
     def agent_tool_function(message):
         print(f"🦾 Agent tool called ({agent.name}): {message}")
         
-        # Call the agent
         _, response = agent.run([{"role": "user", "content": message}])
         
         print(f"📊 Agent response ({agent.name}): {response}")
-        
         return response
     
-    # Create schema for this agent tool
     tool_schema = {
         "name": f"{agent.name}_agent",
         "description": description,
@@ -64,7 +54,7 @@ def create_agent_tool(agent, description):
     return agent_tool_function, tool_schema
 
 
-# Create a calculator assistant
+# === Sub-agents ===
 calculator_assistant = Agent(
     name="calculator_assistant",
     system_prompt="You are a calculator assistant. You specialize in mathematical calculations and solving equations.",
@@ -72,45 +62,48 @@ calculator_assistant = Agent(
     tool_schemas=tool_schemas
 )
 
-# Create agent tool for calculator
+verifier_assistant = Agent(
+    name="verifier_assistant",
+    system_prompt="You are a solution verifier. You specialize in checking and verifying mathematical calculations and solutions.",
+    tools=math_tools,
+    tool_schemas=tool_schemas
+)
+
+# === Agent Tools ===
 calculator_tool_function, calculator_tool_schema = create_agent_tool(
     calculator_assistant,
     "Call the calculator assistant to solve mathematical problems and equations."
 )
 
-# Create a general assistant
-helpful_assistant = Agent(
-    name="helpful_assistant",
-    system_prompt="You are a helpful assistant. You can assist with various tasks and use the calculator tool for math problems.",
-    tools={calculator_tool_schema["name"]:calculator_tool_function},
-    tool_schemas=[calculator_tool_schema]
+verifier_tool_function, verifier_tool_schema = create_agent_tool(
+    verifier_assistant,
+    "Call the verifier assistant to double-check and verify mathematical calculations and solutions."
 )
 
-# Create a message list with a general knowledge question
+# === Main Orchestrator ===
+helpful_assistant = Agent(
+    name="helpful_assistant",
+    system_prompt=(
+        "You are a helpful assistant. You can assist with various tasks. "
+        "For any mathematical problem, use the calculator tool to get the solution "
+        "and the verifier tool to double-check the result before giving the final answer."
+    ),
+    tools={
+        calculator_tool_schema["name"]: calculator_tool_function,
+        verifier_tool_schema["name"]: verifier_tool_function,
+    },
+    tool_schemas=[calculator_tool_schema, verifier_tool_schema]
+)
+
+# Test
 messages = [
     {
         'role': 'user', 
-        'content': 'What is the capital of France?'
+        'content': 'What is the solution to the equation 4x - 7 = 9?'
     }
 ]
 
-# Run the orchestrator agent
 result_messages, response = helpful_assistant.run(messages)
 
-# Display the orchestrator's response to the user
-print(response)
-
-# Create a message list with a general knowledge question
-messages = [
-    {
-        'role': 'user', 
-        'content': 'What is the solution to the equation x² - 5x + 6 = 0?'
-    }
-]
-
-# Run the orchestrator agent
-result_messages, response = helpful_assistant.run(messages)
-
-# Display the orchestrator's response to the user
 print('\n=== Final Response ===\n')
 print(response)
