@@ -142,6 +142,10 @@ class Agent:
 
             if response.stop_reason == "tool_use":
                 tool_results = []
+
+                # Create an empty list called tasks to collect async tool tasks
+                tasks = []
+
                 for content_item in response.content:
                     if content_item.type == "tool_use":
                         if content_item.name == "handoff":
@@ -151,8 +155,14 @@ class Agent:
                             else:
                                 tool_results.append(handoff_result)
                         else:
-                            tool_result = await self.call_tool(content_item)
-                            tool_results.append(tool_result)
+                            # Instead of awaiting call_tool directly, use asyncio.create_task() to schedule it and append the task to the tasks list
+                            task = asyncio.create_task(
+                                self.call_tool(content_item))
+                            tasks.append(task)
+
+                # Check if tasks list is not empty, then use asyncio.gather() to execute all tasks concurrently and extend tool_results with the results
+                if tasks:
+                    tool_results.extend(await asyncio.gather(*tasks))
 
                 messages.append({
                     "role": "user",
@@ -164,5 +174,4 @@ class Agent:
 
                 return messages, response_text
 
-        # If the max turns is reached, raise an exception
         raise Exception("Max turns reached")
