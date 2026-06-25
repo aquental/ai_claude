@@ -142,10 +142,7 @@ class Agent:
 
             if response.stop_reason == "tool_use":
                 tool_results = []
-
-                # Create an empty list called tasks to collect async tool tasks
                 tasks = []
-
                 for content_item in response.content:
                     if content_item.type == "tool_use":
                         if content_item.name == "handoff":
@@ -155,12 +152,9 @@ class Agent:
                             else:
                                 tool_results.append(handoff_result)
                         else:
-                            # Instead of awaiting call_tool directly, use asyncio.create_task() to schedule it and append the task to the tasks list
-                            task = asyncio.create_task(
-                                self.call_tool(content_item))
-                            tasks.append(task)
+                            tasks.append(asyncio.create_task(
+                                self.call_tool(content_item)))
 
-                # Check if tasks list is not empty, then use asyncio.gather() to execute all tasks concurrently and extend tool_results with the results
                 if tasks:
                     tool_results.extend(await asyncio.gather(*tasks))
 
@@ -175,3 +169,9 @@ class Agent:
                 return messages, response_text
 
         raise Exception("Max turns reached")
+
+    # TODO: Add a run_sync method that wraps the async run() method for synchronous usage
+    # Hint: This method should use asyncio.run() to execute the async run() method and return its result
+    def run_sync(self, input_messages):
+        """Synchronous wrapper for the async run method."""
+        return asyncio.run(self.run(input_messages))

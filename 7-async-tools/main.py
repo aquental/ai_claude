@@ -1,4 +1,3 @@
-import asyncio
 import json
 from agent import Agent
 from functions import (
@@ -24,37 +23,28 @@ tools = {
     "square_root": square_root
 }
 
+# Write multiple prompts that we'll process synchronously
+prompts = [
+    "Solve this: (2 + 3) * (4*4)",
+    "Find the roots of x^2 - 5x + 6 = 0",
+]
 
-async def main():
-    # Write multiple prompts that we'll process concurrently
-    prompts = [
-        "Solve this: (2 + 3) * (4*4)",
-        "Find the roots of x^2 - 5x + 6 = 0",
-    ]
+# Create a single agent that will handle conversations
+agent = Agent(
+    name="math_assistant",
+    system_prompt="You are a helpful math assistant.",
+    tools=tools,
+    tool_schemas=tool_schemas,
+    max_turns=15
+)
 
-    # Create a single agent that will handle multiple conversations concurrently
-    agent = Agent(
-        name="math_assistant",
-        system_prompt="You are a helpful math assistant.",
-        tools=tools,
-        tool_schemas=tool_schemas,
-        max_turns=15
-    )
+# Loop through each prompt in the prompts list using enumerate with start=1
+for i, prompt in enumerate(prompts, 1):
+    # Call agent.run_sync() with the proper message format for each prompt (no await needed!)
+    messages, response_text = agent.run_sync(
+        [{"role": "user", "content": prompt}])
 
-    # Create a list of coroutine tasks, one for each prompt (not started yet)
-    tasks = [
-        agent.run([{"role": "user", "content": prompt}])
-        for prompt in prompts
-    ]
-
-    # Run all tasks concurrently and wait for all to complete
-    results = await asyncio.gather(*tasks)
-
-    # Display the final response from each conversation
-    for idx, (_, result) in enumerate(results, start=1):
-        print(f"\n=== run {idx} ===")
-        print(result)
-
-# Entry point - creates event loop and runs the async main() function
-if __name__ == "__main__":
-    asyncio.run(main())
+    # Print the result with run number and final response text
+    print(f"\n=== Run {i} ===")
+    print(f"Prompt: {prompt}")
+    print(f"Response: {response_text}")
