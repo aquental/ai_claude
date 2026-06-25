@@ -1,4 +1,3 @@
-# Import the AsyncAnthropic client instead of Anthropic
 from anthropic import AsyncAnthropic
 
 
@@ -20,7 +19,6 @@ class Agent:
         handoffs=None,
         max_turns=10
     ):
-        # Switch to AsyncAnthropic client for true concurrent execution
         self.client = AsyncAnthropic()
         self.name = name
         self.model = model
@@ -140,7 +138,6 @@ class Agent:
         while turn < self.max_turns:
             turn += 1
 
-            # Add await before this API call to enable concurrent execution
             response = await self.client.messages.create(
                 **self._build_request_args(messages)
             )
