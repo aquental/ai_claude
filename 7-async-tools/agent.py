@@ -1,6 +1,5 @@
-# Import asyncio module to enable async tool execution
-from anthropic import AsyncAnthropic
 import asyncio
+from anthropic import AsyncAnthropic
 
 
 class Agent:
@@ -75,7 +74,6 @@ class Agent:
 
         return request_args
 
-    # Make this method async by adding the async keyword
     async def call_tool(self, tool_use):
         tool_name = tool_use.name
         tool_input = tool_use.input or {}
@@ -91,7 +89,6 @@ class Agent:
             result = f"Error: {str(e)}"
         else:
             try:
-                # Use asyncio.to_thread() with await to run the tool function without blocking
                 result = str(await asyncio.to_thread(tool_fn, **tool_input))
             except Exception as e:
                 result = f"Error: {str(e)}"
@@ -154,7 +151,6 @@ class Agent:
                             else:
                                 tool_results.append(handoff_result)
                         else:
-                            # Add await keyword to call the async call_tool method
                             tool_result = await self.call_tool(content_item)
                             tool_results.append(tool_result)
 
