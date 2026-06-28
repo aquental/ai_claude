@@ -1,69 +1,66 @@
 import dspy
-import os
 
-# Initialize two different language models
-# Hint: Create one primary model (e.g., GPT-4o-mini) and one secondary model (e.g., GPT-3.5-turbo). Remember to set api_key to os.environ['OPENAI_API_KEY'] and api_base to os.environ['OPENAI_BASE_URL']
-lm4 = dspy.LM('openai/gpt-4o-mini', api_key=os.environ['OPENAI_API_KEY'], api_base=os.environ['OPENAI_BASE_URL'])
-lm3 = dspy.LM('openai/gpt-3.5-turbo', api_key=os.environ['OPENAI_API_KEY'], api_base=os.environ['OPENAI_BASE_URL'])
+# Initialize a language model
+lm = dspy.LM('openai/gpt-4o-mini')
 
-# Set the primary model as the global default
-# Hint: Use dspy.configure()
-dspy.configure(lm=lm4)
+# Make a direct call using a simple string
+print("=== String-based LM Call ===")
+string_prompt = "Explain what a language model is in one sentence."
+string_response = lm(string_prompt)
+print(f"Response: {string_response[0]}")
 
-# Create a prompt that we'll use for both models
-prompt = "Explain the concept of recursion in one sentence."
+# Make a call using the structured message format
+print("\n=== Structured Message LM Call ===")
+# Hint: Create a list of message dictionaries with "role" and "content" keys
+# and pass it to the LM using the messages parameter
+messages = [
+    {"role": "system", "content": "You are a helpful and concise assistant."},
+    {"role": "user", "content": "Explain what a language model is in one sentence."}
+]
+structured_response = lm(messages=messages)
+print(
+    f"Response: {structured_response[0] if structured_response else 'No response'}")
 
-# Make a direct call using the global default model
-print("=== Using Primary Model (Global Default) ===")
-# Hint: Call the primary model with the prompt and print the response
-response = lm4(prompt, temperature=0.7)
-print(response)
+# Compare history entries for both calls
+print("\n=== History Comparison ===")
+# Hint: Access the second-to-last call for the string-based call
+# and the last call for the structured message call
+string_call = lm.history[-2]
+structured_call = lm.history[-1]
 
-# Check the history before context switch
-# Hint: Get the length of the primary model's history and print relevant metadata
-print(f"Primary model (lm4) history length before context switch: {len(lm4.history)}")
-before_primary_len = len(lm4.history)
+print("String call metadata keys:", string_call.keys())
+print("Structured call metadata keys:", structured_call.keys())
 
-# TODO: Use a context manager to temporarily switch to the secondary model
-print("\n=== Using Secondary Model (Context Override) ===")
-# Hint: Use dspy.context() to temporarily set the secondary model as the active LM
-with dspy.context(lm=lm3):
-    # TODO: Make the same call with the secondary model
-    # Hint: Call the secondary model with the same prompt and print the response
-    response_secondary = lm3(prompt, temperature=0.7)
-    print(response_secondary)
+# Examine the prompt format in history
+print("\n=== Prompt Format in History ===")
+# Hint: Print the 'prompt' field from both history entries to see
+# how they differ between string and structured formats
+print("String-based call 'prompt' field:")
+print(repr(string_call.get('prompt')))
+print("\nStructured call 'prompt' field:")
+print(repr(structured_call.get('prompt')))
+print("\nStructured call 'messages' field:")
+print(structured_call.get('messages'))
 
-# TODO: Check the history after context switch
-# Hint: Compare the history lengths before and after the context switch
-print(f"\nPrimary model (lm4) history length after context switch: {len(lm4.history)} (was {before_primary_len})")
-print(f"Secondary model (lm3) history length: {len(lm3.history)}")
+# Display detailed metadata from the structured call
+print("\n=== Detailed Metadata from Structured Call ===")
+# Hint: Extract and print timestamp, parameters, and token usage
+# from the structured call's history entry
+print(f"Timestamp: {structured_call.get('timestamp')}")
+print(f"Parameters (kwargs): {structured_call.get('kwargs')}")
+print(f"Token usage: {structured_call.get('usage')}")
+print(f"Cost: {structured_call.get('cost')}")
+print(f"Model: {structured_call.get('model')}")
 
-# TODO: Verify both interactions are in their respective histories
-print("\n=== History Verification ===")
-# Hint: Check if the primary model's history length changed and print a message
-if len(lm4.history) == before_primary_len:
-    print("✓ Primary model's history length did NOT change during the context switch (as expected).")
-else:
-    print("⚠ Primary model's history length changed unexpectedly.")
-
-print(f"Secondary model now has {len(lm3.history)} interaction(s) in its history.")
-
-# TODO: Print metadata from the secondary model's history
-# Hint: Access the last call in the secondary model's history
-if lm3.history:
-    last_call = lm3.history[-1]
-    print("\nMetadata keys from secondary model's last history entry:")
-    print(last_call.keys())
-    print(f"  Model: {last_call.get('model', 'N/A')}")
-    print(f"  Timestamp: {last_call.get('timestamp', 'N/A')}")
-    if 'usage' in last_call and last_call['usage']:
-        print(f"  Usage: {last_call['usage']}")
-
-# TODO: Compare the responses from both models
+# TODO: Compare responses
 print("\n=== Response Comparison ===")
-# Hint: Print both responses side by side to see the differences
-print("Primary Model (lm4 / GPT-4o-mini):")
-print(response)
-print("\nSecondary Model (lm3 / GPT-3.5-turbo):")
-print(response_secondary)
+# Hint: Print the 'response' field from both history entries
+print("String-based call response (from history):")
+print(string_call.get('response'))
+print("\nStructured message call response (from history):")
+print(structured_call.get('response'))
 
+print("\n=== Summary ===")
+print("String calls store the raw prompt in the 'prompt' field.")
+print("Structured (messages=) calls store the chat history in the 'messages' field and usually leave 'prompt' as None or the rendered version.")
+print("Both calls are recorded independently in lm.history with rich metadata (usage, cost, timestamp, etc.).")
