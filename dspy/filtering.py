@@ -34,6 +34,26 @@ programming_questions = [
 ]
 
 
+def filter_dataset(dataset, difficulty):
+    """
+    Filters a dataset of Example objects based on the difficulty level.
+
+    Args:
+        dataset: A list of Example objects
+        difficulty: The difficulty level to filter by (e.g., "Easy", "Medium", "Advanced")
+
+    Returns:
+        A list of Example objects that match the specified difficulty
+    """
+    filtered_examples = []
+
+    for example in dataset:
+        if example.difficulty == difficulty:
+            filtered_examples.append(example)
+
+    return filtered_examples
+
+
 def separate_dataset(dataset):
     """
     Separates a dataset of Example objects into two lists:
@@ -49,49 +69,59 @@ def separate_dataset(dataset):
     return input_list, label_list
 
 
-def filter_dataset(dataset, difficulty):
+def transform_questions(examples):
     """
-    Filters a dataset of Example objects based on the difficulty level.
+    Transforms the question field in each Example by adding a prefix.
+    Maintains the same input field marking.
     """
-    filtered_examples = []
+    transformed_examples = []
 
-    # Loop through each example in the dataset
-    for example in dataset:
-        # Check if the example's difficulty matches the specified difficulty
-        if example.difficulty == difficulty:
-            # If it matches, add the example to filtered_examples
-            filtered_examples.append(example)
+    # Loop through each example
+    for example in examples:
+        # Create transformed question
+        new_question = "Question: " + example.question
 
-    # Return the filtered list
-    return filtered_examples
+        # Create a new Example with the transformed question (copy other fields)
+        transformed = dspy.Example(
+            question=new_question,
+            answer=example.answer,
+            difficulty=example.difficulty
+        )
+
+        # Make sure to mark the question as the input field
+        transformed = transformed.with_inputs("question")
+
+        # Add to the list
+        transformed_examples.append(transformed)
+
+    return transformed_examples
 
 
 # Filter the dataset for Easy questions
-easy_examples = filter_dataset(programming_questions, "Easy")
+easy_questions = filter_dataset(programming_questions, "Easy")
+print(f"Found {len(easy_questions)} Easy questions")
 
-# Use the separate_dataset function on the filtered results
-easy_inputs, easy_labels = separate_dataset(easy_examples)
+# Print original questions before transformation
+print("\nOriginal Easy Questions:")
+for i, example in enumerate(easy_questions):
+    print(f"{i+1}. {example.question}")
 
-# Print the inputs and labels from the filtered examples
-print("Easy Questions (Inputs):")
-for ex in easy_inputs:
+# Apply the transformation to the filtered dataset
+transformed_easy = transform_questions(easy_questions)
+
+# Print the transformed questions
+print("\nTransformed Easy Questions:")
+for i, example in enumerate(transformed_easy):
+    print(f"{i+1}. {example.question}")
+
+# Separate the transformed examples into inputs and labels
+inputs_list, labels_list = separate_dataset(
+    transformed_easy)  # using the function from before
+
+print("\nSeparated Inputs (after transformation):")
+for ex in inputs_list:
     print(ex)
 
-print("\nEasy Questions (Labels):")
-for ex in easy_labels:
-    print(ex)
-
-
-# Filter for Advanced questions
-advanced_examples = filter_dataset(programming_questions, "Advanced")
-
-# Use the separate_dataset function on the new filtered results
-advanced_inputs, advanced_labels = separate_dataset(advanced_examples)
-
-print("\nAdvanced Questions (Inputs):")
-for ex in advanced_inputs:
-    print(ex)
-
-print("\nAdvanced Questions (Labels):")
-for ex in advanced_labels:
+print("\nSeparated Labels (after transformation):")
+for ex in labels_list:
     print(ex)
